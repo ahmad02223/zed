@@ -1,0 +1,51 @@
+name: Experimental Windows Build
+
+on:
+  workflow_dispatch:  # اجازه اجرای دستی می‌دهد
+  push:
+    branches: [main]  # یا branch ای که روی آن کار می‌کنید
+
+env:
+  CARGO_TERM_COLOR: always
+  RUST_BACKTRACE: full
+
+jobs:
+  build-windows:
+    name: Build for Windows
+    runs-on: windows-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Install Rust (Windows)
+        uses: actions-rs/toolchain@v1
+        with:
+          profile: minimal
+          toolchain: stable
+          target: x86_64-pc-windows-msvc
+          override: true
+
+      - name: Install Windows dependencies
+        run: |
+          choco install -y llvm
+          echo "C:\Program Files\LLVM\bin" >> $env:GITHUB_PATH
+
+      - name: Build (Release)
+        run: |
+          cargo build --release --target x86_64-pc-windows-msvc
+          ls -la target/x86_64-pc-windows-msvc/release/
+
+      - name: Package artifacts
+        run: |
+          mkdir zed-windows
+          cp target/x86_64-pc-windows-msvc/release/zed.exe zed-windows/
+          cp -r assets zed-windows/  # اگر فایل‌های asset وجود دارند
+          7z a zed-windows-nightly.zip zed-windows/
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: zed-windows-nightly
+          path: zed-windows-nightly.zip
