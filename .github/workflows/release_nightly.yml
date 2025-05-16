@@ -1,13 +1,15 @@
 name: Experimental Windows Build
 
 on:
-  workflow_dispatch:  # اجازه اجرای دستی می‌دهد
+  workflow_dispatch:
   push:
-    branches: [main]  # یا branch ای که روی آن کار می‌کنید
+    branches: [main]
 
 env:
   CARGO_TERM_COLOR: always
   RUST_BACKTRACE: full
+  CARGO_HOME: D:\cargo_short
+  GIT_CLONE_PATH: D:\git_clones
 
 jobs:
   build-windows:
@@ -19,6 +21,11 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: Configure short paths
+        run: |
+          mkdir D:\cargo_short
+          mkdir D:\git_clones
+
       - name: Install Rust (Windows)
         uses: actions-rs/toolchain@v1
         with:
@@ -27,22 +34,16 @@ jobs:
           target: x86_64-pc-windows-msvc
           override: true
 
-      - name: Install Windows dependencies
-        run: |
-          choco install -y llvm
-          echo "C:\Program Files\LLVM\bin" >> $env:GITHUB_PATH
-
       - name: Build (Release)
         run: |
-          cargo build --release --target x86_64-pc-windows-msvc
-          ls -la target/x86_64-pc-windows-msvc/release/
+          cargo build --release --target x86_64-pc-windows-msvc --no-default-features
+          dir target\x86_64-pc-windows-msvc\release\
 
       - name: Package artifacts
         run: |
           mkdir zed-windows
-          cp target/x86_64-pc-windows-msvc/release/zed.exe zed-windows/
-          cp -r assets zed-windows/  # اگر فایل‌های asset وجود دارند
-          7z a zed-windows-nightly.zip zed-windows/
+          copy target\x86_64-pc-windows-msvc\release\zed.exe zed-windows\
+          7z a zed-windows-nightly.zip zed-windows\
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
